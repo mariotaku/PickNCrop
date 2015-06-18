@@ -1,0 +1,6 @@
+<resources>
+    <string name="pnc__source_camera">Camera</string>
+    <string name="pnc__source_gallery">Gallery</string>
+    <string name="pnc__source_clipboard">Clipboard</string>
+    <string name="pnc__please_wait">Please wait</string>
+</resources>
