@@ -68,8 +68,9 @@ public class Utils {
         public static String getImageUrl(final Context context) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) return null;
             final ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+            if (!cm.hasPrimaryClip()) return null;
             final ClipData primaryClip = cm.getPrimaryClip();
-            if (primaryClip.getItemCount() > 0) {
+            if (primaryClip != null && primaryClip.getItemCount() > 0) {
                 final ClipData.Item item = primaryClip.getItemAt(0);
                 final CharSequence styledText = item.coerceToStyledText(context);
                 if (styledText instanceof Spanned) {
