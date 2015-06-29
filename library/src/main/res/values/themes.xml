@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <!--
   ~ Copyright (c) 2015 mariotaku
   ~
@@ -14,16 +15,15 @@
   ~ limitations under the License.
   -->
 
-<manifest
-    package="org.mariotaku.pickncrop.library"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<resources>
 
-    <application
-        android:allowBackup="true">
-        <activity
-            android:name=".ImagePickerActivity"
-            android:theme="@style/Theme.PickNCrop.NoDisplay"/>
-        <activity android:name="com.soundcloud.android.crop.CropImageActivity"/>
-    </application>
+    <style name="Theme.PickNCrop.NoDisplay" parent="android:Theme.DeviceDefault">
+        <item name="android:windowBackground">@null</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:windowNoDisplay">true</item>
+    </style>
 
-</manifest>
+</resources>
