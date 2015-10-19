@@ -84,6 +84,8 @@ public class ImagePickerActivity extends Activity {
     private Uri mTempPhotoUri;
     private CopyImageTask mTask;
     private Runnable mImageSelectedRunnable;
+    private Runnable mResumeRunnable;
+    private boolean mFragmentResumed;
 
     @Override
     public void onActivityResult(final int requestCode, final int resultCode, final Intent intent) {
@@ -281,10 +283,7 @@ public class ImagePickerActivity extends Activity {
 
         @Override
         protected void onPostExecute(final Pair<File, Exception> result) {
-            final Fragment f = mActivity.getFragmentManager().findFragmentByTag(TAG_COPYING_IMAGE);
-            if (f instanceof DialogFragment) {
-                ((DialogFragment) f).dismiss();
-            }
+            mActivity.dismissProgressDialog(TAG_COPYING_IMAGE);
             if (result.first != null) {
                 final Uri dstUri = Uri.fromFile(result.first);
                 final Intent callingIntent = mActivity.getIntent();
@@ -316,6 +315,37 @@ public class ImagePickerActivity extends Activity {
             }
             mActivity.finish();
         }
+    }
+
+    private void dismissProgressDialog(final String tag) {
+        mResumeRunnable = new Runnable() {
+            @Override
+            public void run() {
+                final Fragment f = getFragmentManager().findFragmentByTag(tag);
+                if (f instanceof DialogFragment) {
+                    ((DialogFragment) f).dismiss();
+                }
+                mResumeRunnable = null;
+            }
+        };
+        if (mFragmentResumed) {
+            mResumeRunnable.run();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        mFragmentResumed = false;
+        super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mResumeRunnable != null && !mFragmentResumed) {
+            mResumeRunnable.run();
+        }
+        mFragmentResumed = true;
     }
 
     private NetworkStreamDownloader createNetworkStreamDownloader() {
