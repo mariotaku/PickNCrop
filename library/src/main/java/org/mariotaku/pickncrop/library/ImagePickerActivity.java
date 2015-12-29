@@ -220,13 +220,14 @@ public class ImagePickerActivity extends Activity {
     private static class CopyImageTask extends AsyncTask<Object, Object, Pair<File, Exception>> {
         private static final String TAG_COPYING_IMAGE = "copying_image";
         private final ImagePickerActivity mActivity;
-        private final Uri mUri;
+        private final Uri mSourceUri;
         private final boolean mNeedsCrop;
         private final boolean mDeleteSource;
 
-        public CopyImageTask(final ImagePickerActivity activity, final Uri uri, final boolean needsCrop, final boolean deleteSource) {
+        public CopyImageTask(final ImagePickerActivity activity, final Uri sourceUri,
+                             final boolean needsCrop, final boolean deleteSource) {
             mActivity = activity;
-            mUri = uri;
+            mSourceUri = sourceUri;
             mNeedsCrop = needsCrop;
             mDeleteSource = deleteSource;
         }
@@ -238,23 +239,22 @@ public class ImagePickerActivity extends Activity {
             OutputStream os = null;
             try {
                 final File cacheDir = mActivity.getCacheDir();
-                final Uri uri = this.mUri;
                 final String mimeType;
-                final String scheme = uri.getScheme();
+                final String scheme = mSourceUri.getScheme();
                 if (SCHEME_HTTP.equals(scheme) || SCHEME_HTTPS.equals(scheme)) {
                     final NetworkStreamDownloader downloader = mActivity.createNetworkStreamDownloader();
-                    final NetworkStreamDownloader.DownloadResult result = downloader.get(uri);
+                    final NetworkStreamDownloader.DownloadResult result = downloader.get(mSourceUri);
                     is = result.stream;
                     mimeType = result.mimeType;
                 } else if (SCHEME_DATA.equals(scheme)) {
-                    final DataUri dataUri = DataUri.parse(uri.toString(), Charset.defaultCharset());
+                    final DataUri dataUri = DataUri.parse(mSourceUri.toString(), Charset.defaultCharset());
                     is = new ByteArrayInputStream(dataUri.getData());
                     mimeType = dataUri.getMime();
                 } else {
-                    is = cr.openInputStream(uri);
+                    is = cr.openInputStream(mSourceUri);
                     final BitmapFactory.Options opts = new BitmapFactory.Options();
                     opts.inJustDecodeBounds = true;
-                    BitmapFactory.decodeStream(cr.openInputStream(uri), null, opts);
+                    BitmapFactory.decodeStream(cr.openInputStream(mSourceUri), null, opts);
                     mimeType = opts.outMimeType;
                 }
                 final String suffix = mimeType != null ? "."
@@ -263,7 +263,7 @@ public class ImagePickerActivity extends Activity {
                 os = new FileOutputStream(outFile);
                 Utils.copyStream(is, os);
                 if (mDeleteSource && SCHEME_FILE.equals(scheme)) {
-                    final File sourceFile = new File(mUri.getPath());
+                    final File sourceFile = new File(mSourceUri.getPath());
                     sourceFile.delete();
                 }
                 return Pair.create(outFile, null);
