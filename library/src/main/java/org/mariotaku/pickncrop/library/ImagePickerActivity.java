@@ -35,6 +35,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
+import android.support.annotation.WorkerThread;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
@@ -51,6 +52,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 
 import repackaged.com.github.ooxi.jdatauri.DataUri;
 
@@ -83,8 +86,7 @@ public class ImagePickerActivity extends Activity {
 
     private Uri mTempPhotoUri;
     private CopyImageTask mTask;
-    private Runnable mImageSelectedRunnable;
-    private Runnable mResumeRunnable;
+    private Queue<Runnable> mResumeRunnableQueue = new LinkedList<>();
     private boolean mFragmentResumed;
 
     @Override
@@ -118,28 +120,39 @@ public class ImagePickerActivity extends Activity {
             }
         }
         if (src == null) return;
-        mImageSelectedRunnable = new Runnable() {
+        queueAfterResumed(new Runnable() {
 
             @Override
             public void run() {
                 imageSelected(src, needsCrop, !needsCrop);
             }
-        };
+        });
     }
 
-//    @Override
-//    protected void onResumeFragments() {
-//        super.onResumeFragments();
-//        if (mImageSelectedRunnable != null) {
-//            runOnUiThread(mImageSelectedRunnable);
-//        }
-//    }
+    private void queueAfterResumed(Runnable runnable) {
+        mResumeRunnableQueue.add(runnable);
+        executePending();
+    }
+
 
     @Override
     protected void onPostResume() {
         super.onPostResume();
-        if (mImageSelectedRunnable != null) {
-            runOnUiThread(mImageSelectedRunnable);
+        mFragmentResumed = true;
+        executePending();
+    }
+
+    @Override
+    protected void onPause() {
+        mFragmentResumed = false;
+        super.onPause();
+    }
+
+    private void executePending() {
+        if (!mFragmentResumed) return;
+        Runnable runnable;
+        while ((runnable = mResumeRunnableQueue.poll()) != null) {
+            runOnUiThread(runnable);
         }
     }
 
@@ -159,11 +172,6 @@ public class ImagePickerActivity extends Activity {
         }
     }
 
-    @Override
-    protected void onStop() {
-        mImageSelectedRunnable = null;
-        super.onStop();
-    }
 
     private void imageSelected(final Uri uri, final boolean needsCrop, final boolean deleteSource) {
         final CopyImageTask task = mTask;
@@ -318,35 +326,17 @@ public class ImagePickerActivity extends Activity {
     }
 
     private void dismissProgressDialog(final String tag) {
-        mResumeRunnable = new Runnable() {
+        queueAfterResumed(new Runnable() {
             @Override
             public void run() {
                 final Fragment f = getFragmentManager().findFragmentByTag(tag);
                 if (f instanceof DialogFragment) {
                     ((DialogFragment) f).dismiss();
                 }
-                mResumeRunnable = null;
             }
-        };
-        if (mFragmentResumed) {
-            mResumeRunnable.run();
-        }
+        });
     }
 
-    @Override
-    protected void onPause() {
-        mFragmentResumed = false;
-        super.onPause();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (mResumeRunnable != null && !mFragmentResumed) {
-            mResumeRunnable.run();
-        }
-        mFragmentResumed = true;
-    }
 
     private NetworkStreamDownloader createNetworkStreamDownloader() {
         final Intent intent = getIntent();
@@ -476,6 +466,7 @@ public class ImagePickerActivity extends Activity {
             return mContext;
         }
 
+        @WorkerThread
         public abstract DownloadResult get(Uri uri) throws IOException;
 
         public static final class DownloadResult {

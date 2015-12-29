@@ -18,12 +18,12 @@
 <resources>
 
     <style name="Theme.PickNCrop.NoDisplay" parent="android:Theme.DeviceDefault">
-        <item name="android:windowBackground">@null</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowFrame">@null</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowAnimationStyle">@null</item>
         <item name="android:windowDisablePreview">true</item>
-        <item name="android:windowNoDisplay">true</item>
     </style>
 
 </resources>
