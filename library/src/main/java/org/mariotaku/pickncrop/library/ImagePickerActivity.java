@@ -40,6 +40,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
 import android.webkit.MimeTypeMap;
+import android.widget.Toast;
 
 import com.soundcloud.android.crop.Crop;
 import com.soundcloud.android.crop.CropImageActivity;
@@ -83,6 +84,9 @@ public class ImagePickerActivity extends Activity {
     public static final String EXTRA_ASPECT_Y = "aspect_y";
     public static final String EXTRA_MAX_WIDTH = "max_width";
     public static final String EXTRA_MAX_HEIGHT = "max_height";
+    public static final String SOURCE_CAMERA = "camera";
+    public static final String SOURCE_CLIPBOARD = "clipboard";
+    public static final String SOURCE_GALLERY = "gallery";
 
     private Uri mTempPhotoUri;
     private CopyImageTask mTask;
@@ -320,6 +324,7 @@ public class ImagePickerActivity extends Activity {
                 mActivity.setResult(RESULT_OK, data);
             } else if (result.second != null) {
                 Log.w(LOGTAG, result.second);
+                Toast.makeText(mActivity, R.string.pnc__error_cannot_open_file, Toast.LENGTH_SHORT).show();
             }
             mActivity.finish();
         }
@@ -360,11 +365,11 @@ public class ImagePickerActivity extends Activity {
             final ImagePickerActivity addImageActivity = (ImagePickerActivity) activity;
             final Entry entry = mEntries[which];
             final String source = entry.value;
-            if ("gallery".equals(source)) {
+            if (SOURCE_GALLERY.equals(source)) {
                 addImageActivity.pickImage();
-            } else if ("camera".equals(source)) {
+            } else if (SOURCE_CAMERA.equals(source)) {
                 addImageActivity.takePhoto();
-            } else if ("clipboard".equals(source)) {
+            } else if (SOURCE_CLIPBOARD.equals(source)) {
                 if (mClipboardImageUrl != null) {
                     addImageActivity.imageSelected(Uri.parse(mClipboardImageUrl), true, false);
                 }
@@ -383,12 +388,12 @@ public class ImagePickerActivity extends Activity {
             final AlertDialog.Builder builder = new AlertDialog.Builder(activity);
             final ArrayList<Entry> entriesList = new ArrayList<>();
             if (pm.hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
-                entriesList.add(new Entry(getString(R.string.pnc__source_camera), "camera"));
+                entriesList.add(new Entry(getString(R.string.pnc__source_camera), SOURCE_CAMERA));
             }
-            entriesList.add(new Entry(getString(R.string.pnc__source_gallery), "gallery"));
+            entriesList.add(new Entry(getString(R.string.pnc__source_gallery), SOURCE_GALLERY));
             mClipboardImageUrl = Utils.getImageUrl(activity);
             if (!TextUtils.isEmpty(mClipboardImageUrl)) {
-                entriesList.add(new Entry(getString(R.string.pnc__source_clipboard), "clipboard"));
+                entriesList.add(new Entry(getString(R.string.pnc__source_clipboard), SOURCE_CLIPBOARD));
             }
             final ArrayList<ExtraEntry> extraEntries = intent.getParcelableArrayListExtra(EXTRA_EXTRA_ENTRIES);
             if (extraEntries != null) {
