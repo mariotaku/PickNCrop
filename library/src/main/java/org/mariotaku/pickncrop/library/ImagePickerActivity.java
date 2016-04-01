@@ -264,10 +264,7 @@ public class ImagePickerActivity extends Activity {
                     mimeType = dataUri.getMime();
                 } else {
                     is = cr.openInputStream(mSourceUri);
-                    final BitmapFactory.Options opts = new BitmapFactory.Options();
-                    opts.inJustDecodeBounds = true;
-                    BitmapFactory.decodeStream(cr.openInputStream(mSourceUri), null, opts);
-                    mimeType = opts.outMimeType;
+                    mimeType = getImageMimeType();
                 }
                 final String suffix = mimeType != null ? "."
                         + MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) : null;
@@ -327,6 +324,21 @@ public class ImagePickerActivity extends Activity {
                 Toast.makeText(mActivity, R.string.pnc__error_cannot_open_file, Toast.LENGTH_SHORT).show();
             }
             mActivity.finish();
+        }
+
+        private String getImageMimeType() {
+            InputStream is = null;
+            try {
+                is = mActivity.getContentResolver().openInputStream(mSourceUri);
+                final BitmapFactory.Options opts = new BitmapFactory.Options();
+                opts.inJustDecodeBounds = true;
+                BitmapFactory.decodeStream(is, null, opts);
+                return opts.outMimeType;
+            } catch (IOException e) {
+                return null;
+            } finally {
+                Utils.closeSilently(is);
+            }
         }
     }
 

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+apply plugin: 'maven'
 apply plugin: 'com.android.library'
 apply plugin: 'com.neenbedankt.android-apt'
 
@@ -24,8 +25,8 @@ android {
     defaultConfig {
         minSdkVersion 14
         targetSdkVersion 23
-        versionCode 2
-        versionName "0.9.3"
+        versionCode 3
+        versionName "0.9.4"
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_7
@@ -40,8 +41,18 @@ android {
 }
 
 dependencies {
-    apt 'com.hannesdorfmann.parcelableplease:processor:1.0.1'
-    compile 'com.android.support:support-annotations:23.1.1'
-    compile 'com.soundcloud.android:android-crop:1.0.0@aar'
-    compile 'com.hannesdorfmann.parcelableplease:annotation:1.0.1'
+    apt 'com.hannesdorfmann.parcelableplease:processor:1.0.2'
+    compile 'com.android.support:support-annotations:23.2.1'
+    compile 'com.soundcloud.android:android-crop:1.0.1@aar'
+    compile 'com.hannesdorfmann.parcelableplease:annotation:1.0.2'
+}
+
+uploadArchives {
+    repositories {
+        mavenInstaller {
+            pom.version = android.defaultConfig.versionName
+            pom.groupId = 'com.github.mariotaku'
+            pom.artifactId = rootProject.name
+        }
+    }
 }
