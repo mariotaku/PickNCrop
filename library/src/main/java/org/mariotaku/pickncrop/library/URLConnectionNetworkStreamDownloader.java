@@ -26,7 +26,7 @@ import java.net.URLConnection;
 /**
  * Created by mariotaku on 15/6/18.
  */
-public class URLConnectionNetworkStreamDownloader extends ImagePickerActivity.NetworkStreamDownloader {
+public class URLConnectionNetworkStreamDownloader extends MediaPickerActivity.NetworkStreamDownloader {
     public URLConnectionNetworkStreamDownloader(final Context context) {
         super(context);
     }

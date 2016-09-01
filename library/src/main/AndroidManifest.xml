@@ -21,7 +21,7 @@
     <application
         android:allowBackup="true">
         <activity
-            android:name=".ImagePickerActivity"
+            android:name=".MediaPickerActivity"
             android:theme="@style/Theme.PickNCrop.NoDisplay"/>
         <activity android:name="com.soundcloud.android.crop.CropImageActivity"/>
     </application>
