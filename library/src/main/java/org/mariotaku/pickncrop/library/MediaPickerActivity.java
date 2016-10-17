@@ -31,11 +31,13 @@ import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.WorkerThread;
+import android.support.v4.content.FileProvider;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
@@ -165,6 +167,10 @@ public class MediaPickerActivity extends Activity {
         super.onCreate(savedInstanceState);
         final Intent intent = getIntent();
         final String action = intent.getAction();
+        if (action == null) {
+            new ImageSourceDialogFragment().show(getFragmentManager(), "image_source");
+            return;
+        }
         switch (action) {
             case INTENT_ACTION_TAKE_PHOTO: {
                 takePhoto();
@@ -178,9 +184,9 @@ public class MediaPickerActivity extends Activity {
                 imageSelected(intent.getData(), true, false);
                 break;
             }
-            default:
-                new ImageSourceDialogFragment().show(getFragmentManager(), "image_source");
-                break;
+            default: {
+                throw new IllegalArgumentException("Unknown action");
+            }
         }
     }
 
@@ -203,8 +209,13 @@ public class MediaPickerActivity extends Activity {
     }
 
     private void takePhoto() {
-        final Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         final Uri uri = createTempImageUri();
+        if (uri == null) {
+            Toast.makeText(this, R.string.pnc__error_cannot_open_file, Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+        final Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         mTempPhotoUri = uri;
         intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
         try {
@@ -215,15 +226,35 @@ public class MediaPickerActivity extends Activity {
     }
 
     private Uri createTempImageUri() {
-        if (!getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) return null;
-        final File extCacheDir = getExternalCacheDir();
-        final File file;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            if (!getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) return null;
+            final File extCacheDir = getExternalCacheDir();
+            final File file;
+            try {
+                file = File.createTempFile("temp_image_", ".tmp", extCacheDir);
+            } catch (final IOException e) {
+                if (BuildConfig.DEBUG) {
+                }
+                Log.w(LOGTAG, e);
+                return null;
+            }
+            return Uri.fromFile(file);
+        }
+        final File cacheDir = getCacheDir();
+        final File pickedMediaDir = new File(cacheDir, "picked-media");
         try {
-            file = File.createTempFile("temp_image_", ".tmp", extCacheDir);
+            if (!pickedMediaDir.exists()) {
+                //noinspection ResultOfMethodCallIgnored
+                pickedMediaDir.mkdirs();
+            }
+            final File file = File.createTempFile("temp_image_", ".tmp", pickedMediaDir);
+            return FileProvider.getUriForFile(this, getPackageName() + ".pncfileprovider", file);
         } catch (final IOException e) {
+            if (BuildConfig.DEBUG) {
+            }
+            Log.w(LOGTAG, e);
             return null;
         }
-        return Uri.fromFile(file);
     }
 
     private boolean takePhotoFallback(Uri uri) {
@@ -244,8 +275,8 @@ public class MediaPickerActivity extends Activity {
         private final boolean mNeedsCrop;
         private final boolean mDeleteSource;
 
-        public CopyImageTask(final MediaPickerActivity activity, final Uri sourceUri,
-                             final boolean needsCrop, final boolean deleteSource) {
+        CopyImageTask(final MediaPickerActivity activity, final Uri sourceUri,
+                      final boolean needsCrop, final boolean deleteSource) {
             mActivity = activity;
             mSourceUri = sourceUri;
             mNeedsCrop = needsCrop;

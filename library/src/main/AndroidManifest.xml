@@ -18,12 +18,12 @@
     package="org.mariotaku.pickncrop.library"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <application
-        android:allowBackup="true">
+    <application>
         <activity
             android:name=".MediaPickerActivity"
             android:theme="@style/Theme.PickNCrop.NoDisplay"/>
         <activity android:name="com.soundcloud.android.crop.CropImageActivity"/>
+
     </application>
 
 </manifest>
