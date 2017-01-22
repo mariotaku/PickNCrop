@@ -403,10 +403,10 @@ public class MediaPickerActivity extends Activity {
                             + MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) : null;
                     final Uri targetUri = mActivity.createTempMediaUri(suffix);
                     os = mActivity.getContentResolver().openOutputStream(targetUri);
-                    Utils.copyStream(is, os);
+                    PNCUtils.copyStream(is, os);
                     if (mDeleteSource) {
                         try {
-                            Utils.deleteMedia(mActivity, src);
+                            PNCUtils.deleteMedia(mActivity, src);
                         } catch (SecurityException e) {
                             Log.w(LOGTAG, "WRITE_EXTERNAL_STORAGE permission is needed for deleting media", e);
                         }
@@ -415,8 +415,8 @@ public class MediaPickerActivity extends Activity {
                 } catch (final IOException e) {
                     return Pair.<Uri[], Exception>create(null, e);
                 } finally {
-                    Utils.closeSilently(os);
-                    Utils.closeSilently(is);
+                    PNCUtils.closeSilently(os);
+                    PNCUtils.closeSilently(is);
                 }
             }
             return Pair.create(targetUris, null);
@@ -493,7 +493,7 @@ public class MediaPickerActivity extends Activity {
             } catch (IOException e) {
                 return null;
             } finally {
-                Utils.closeSilently(is);
+                PNCUtils.closeSilently(is);
             }
         }
     }
@@ -562,7 +562,7 @@ public class MediaPickerActivity extends Activity {
                 entriesList.add(new Entry(getString(R.string.pnc__source_camcorder), SOURCE_CAMCORDER));
             }
             entriesList.add(new Entry(getString(R.string.pnc__source_gallery), SOURCE_GALLERY));
-            mClipboardImageUrl = Utils.getImageUrl(activity);
+            mClipboardImageUrl = PNCUtils.getImageUrl(activity);
             if (!TextUtils.isEmpty(mClipboardImageUrl)) {
                 entriesList.add(new Entry(getString(R.string.pnc__source_clipboard), SOURCE_CLIPBOARD));
             }

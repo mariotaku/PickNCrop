@@ -38,7 +38,7 @@ import java.io.OutputStream;
 /**
  * Created by mariotaku on 15/6/18.
  */
-public class Utils {
+public class PNCUtils {
 
     @Nullable
     public static String getImageUrl(final Context context) {
