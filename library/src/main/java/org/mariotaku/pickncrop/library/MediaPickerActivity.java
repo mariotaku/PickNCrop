@@ -664,7 +664,7 @@ public class MediaPickerActivity extends Activity {
     }
 
     public static IntentBuilder with(Context context) {
-        return new IntentBuilder(context);
+        return new IntentBuilder(context, MediaPickerActivity.class);
     }
 
     @SuppressWarnings("unused,WeakerAccess")
@@ -672,8 +672,8 @@ public class MediaPickerActivity extends Activity {
         private final Intent intent;
         private final ArrayList<ExtraEntry> extraEntries;
 
-        public IntentBuilder(final Context context) {
-            this.intent = new Intent(context, MediaPickerActivity.class);
+        public IntentBuilder(final Context context, final Class<? extends MediaPickerActivity> cls) {
+            this.intent = new Intent(context, cls);
             cropImageActivityClass(CropImageActivity.class);
             streamDownloaderClass(URLConnectionNetworkStreamDownloader.class);
             extraEntries = new ArrayList<>();
