@@ -17,10 +17,17 @@
 package org.mariotaku.pickncrop;
 
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.ImageView;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
 import org.mariotaku.pickncrop.library.MediaPickerActivity;
 
@@ -28,13 +35,28 @@ import org.mariotaku.pickncrop.library.MediaPickerActivity;
 public class MainActivity extends Activity {
 
     private static final int REQUEST_PICK_MEDIA = 101;
-    private ImageView mImageView;
+    private WebView mWebView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        findViewById(R.id.pick_image).setOnClickListener(new View.OnClickListener() {
+
+        WebViewClient client = new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                return super.shouldInterceptRequest(view, request);
+            }
+        };
+        mWebView.setWebViewClient(client);
+
+        WebSettings settings = mWebView.getSettings();
+        settings.setLoadsImagesAutomatically(true);
+        settings.setSupportZoom(true);
+        settings.setBuiltInZoomControls(true);
+        settings.setAllowFileAccess(true);
+
+        findViewById(R.id.pick_media).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 pickImage();
@@ -46,12 +68,36 @@ public class MainActivity extends Activity {
                 takePhoto();
             }
         });
+        findViewById(R.id.capture_video).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                captureVideo();
+            }
+        });
+    }
+
+    @Override
+    protected void onPause() {
+        mWebView.onPause();
+        super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        mWebView.onResume();
+        super.onResume();
+    }
+
+    @Override
+    protected void onDestroy() {
+        mWebView.destroy();
+        super.onDestroy();
     }
 
     @Override
     public void onContentChanged() {
         super.onContentChanged();
-        mImageView = (ImageView) findViewById(R.id.image);
+        mWebView = (WebView) findViewById(R.id.webview);
     }
 
     @Override
@@ -59,7 +105,45 @@ public class MainActivity extends Activity {
         switch (requestCode) {
             case REQUEST_PICK_MEDIA: {
                 if (resultCode == RESULT_OK) {
-                    mImageView.setImageURI(data.getData());
+                    StringBuilder hb = new StringBuilder();
+                    hb.append("<!DOCTYPE html>");
+                    hb.append("<html>");
+                    hb.append("<head>");
+                    hb.append("<meta charset=\"UTF-8\">");
+                    hb.append("</head>");
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                        ClipData clipData = data.getClipData();
+                        for (int i = 0, j = clipData.getItemCount(); i < j; i++) {
+                            final ClipData.Item item = clipData.getItemAt(i);
+                            final Uri uri = item.getUri();
+                            final String type = getContentResolver().getType(uri);
+                            if (type != null && type.startsWith("video/")) {
+                                hb.append("<video src='");
+                                hb.append(uri.toString());
+                                hb.append("'/>");
+                            } else {
+                                hb.append("<img src='");
+                                hb.append(uri.toString());
+                                hb.append("'/>");
+                            }
+                            hb.append("</br>");
+                        }
+                    } else {
+                        final String type = data.resolveType(this);
+                        if (type != null && type.startsWith("video/")) {
+                            hb.append("<video src='");
+                            hb.append(data.getDataString());
+                            hb.append("'/>");
+                        } else {
+                            hb.append("<img src='");
+                            hb.append(data.getDataString());
+                            hb.append("'/>");
+                        }
+                    }
+
+                    hb.append("</html>");
+                    mWebView.loadDataWithBaseURL("http://example.com/", hb.toString(), "text/html", "UTF-8", null);
                 }
                 return;
             }
@@ -68,11 +152,24 @@ public class MainActivity extends Activity {
     }
 
     private void takePhoto() {
-        startActivityForResult(MediaPickerActivity.with(this).takePhoto().build(), REQUEST_PICK_MEDIA);
+        final Intent intent = MediaPickerActivity.with(this)
+                .takePhoto()
+                .build();
+        startActivityForResult(intent, REQUEST_PICK_MEDIA);
+    }
+
+    private void captureVideo() {
+        final Intent intent = MediaPickerActivity.with(this)
+                .captureVideo(1)
+                .build();
+        startActivityForResult(intent, REQUEST_PICK_MEDIA);
     }
 
     private void pickImage() {
-        startActivityForResult(MediaPickerActivity.with(this).pickImage().build(), REQUEST_PICK_MEDIA);
+        final Intent intent = MediaPickerActivity.with(this)
+                .pickMedia(true, false, true)
+                .build();
+        startActivityForResult(intent, REQUEST_PICK_MEDIA);
     }
 
 }

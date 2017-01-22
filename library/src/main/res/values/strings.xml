@@ -16,8 +16,10 @@
 
 <resources>
     <string name="pnc__source_camera">Camera</string>
+    <string name="pnc__source_camcorder">Video recorder</string>
     <string name="pnc__source_gallery">Gallery</string>
     <string name="pnc__source_clipboard">Clipboard</string>
     <string name="pnc__please_wait">Please wait</string>
     <string name="pnc__error_cannot_open_file">Can\'t open file</string>
+    <string name="pnc__label_media">Media</string>
 </resources>

@@ -18,6 +18,7 @@
     <string name="app_name">Pick \'N\' Crop</string>
     <string name="title_activity_main">MainActivity</string>
 
-    <string name="pick_image">Pick image</string>
+    <string name="pick_media">Pick media</string>
     <string name="take_photo">Take photo</string>
+    <string name="capture_video">Capture video</string>
 </resources>
