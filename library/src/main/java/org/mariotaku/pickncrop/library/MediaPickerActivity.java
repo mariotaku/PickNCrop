@@ -414,9 +414,12 @@ public class MediaPickerActivity extends Activity {
                     final Uri targetUri = mActivity.createTempMediaUri(suffix);
                     os = mActivity.getContentResolver().openOutputStream(targetUri);
                     Utils.copyStream(is, os);
-                    if (mDeleteSource && SCHEME_FILE.equals(scheme)) {
-                        final File sourceFile = new File(src.getPath());
-                        sourceFile.delete();
+                    if (mDeleteSource) {
+                        try {
+                            Utils.deleteMedia(mActivity, src);
+                        } catch (SecurityException e) {
+                            Log.w(LOGTAG, "WRITE_EXTERNAL_STORAGE permission is needed for deleting media", e);
+                        }
                     }
                     targetUris[i] = targetUri;
                 } catch (final IOException e) {

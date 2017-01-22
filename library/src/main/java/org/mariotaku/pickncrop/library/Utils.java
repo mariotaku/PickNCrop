@@ -19,13 +19,18 @@ package org.mariotaku.pickncrop.library;
 import android.annotation.TargetApi;
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.text.Spanned;
 import android.text.style.ImageSpan;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -59,6 +64,33 @@ public class Utils {
             os.write(bytes, 0, count);
             count = is.read(bytes, 0, bufferSize);
         }
+    }
+
+    public static boolean deleteMedia(Context context, Uri uri) {
+        final String scheme = uri.getScheme();
+        if (ContentResolver.SCHEME_CONTENT.equals(scheme)) {
+            ContentResolver cr = context.getContentResolver();
+            String[] projection = {MediaStore.MediaColumns.DATA};
+            Cursor cursor = cr.query(uri, projection, null, null, null);
+            if (cursor == null) return false;
+            try {
+                final boolean result;
+                if (cursor.moveToFirst()) {
+                    String path = cursor.getString(0);
+                    result = new File(path).delete();
+                    if (!result) return false;
+                    cr.delete(uri, null, null);
+                } else {
+                    result = false;
+                }
+                return result;
+            } finally {
+                cursor.close();
+            }
+        } else if (ContentResolver.SCHEME_FILE.equals(scheme)) {
+            return new File(uri.getPath()).delete();
+        }
+        return false;
     }
 
 

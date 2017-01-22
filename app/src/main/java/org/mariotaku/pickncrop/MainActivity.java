@@ -16,12 +16,16 @@
 
 package org.mariotaku.pickncrop;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.ClipData;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.view.View;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -35,6 +39,7 @@ import org.mariotaku.pickncrop.library.MediaPickerActivity;
 public class MainActivity extends Activity {
 
     private static final int REQUEST_PICK_MEDIA = 101;
+    private static final int REQUEST_REQUEST_PERMISSION = 201;
     private WebView mWebView;
 
     @Override
@@ -74,6 +79,10 @@ public class MainActivity extends Activity {
                 captureVideo();
             }
         });
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    REQUEST_REQUEST_PERMISSION);
+        }
     }
 
     @Override
