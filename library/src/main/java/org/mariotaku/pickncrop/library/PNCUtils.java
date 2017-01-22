@@ -75,15 +75,16 @@ public class PNCUtils {
             if (cursor == null) return false;
             try {
                 final boolean result;
-                if (cursor.moveToFirst()) {
-                    String path = cursor.getString(0);
+                int idx = cursor.getColumnIndex(MediaStore.MediaColumns.DATA);
+                if (idx >= 0 && cursor.moveToFirst()) {
+                    String path = cursor.getString(idx);
                     result = new File(path).delete();
-                    if (!result) return false;
-                    cr.delete(uri, null, null);
                 } else {
                     result = false;
                 }
-                return result;
+                if (!result) return false;
+                cr.delete(uri, null, null);
+                return true;
             } finally {
                 cursor.close();
             }
