@@ -176,7 +176,10 @@ public class MainActivity extends Activity {
 
     private void pickImage() {
         final Intent intent = MediaPickerActivity.with(this)
-                .pickMedia(true, false, true)
+                .pickMedia()
+                .containsVideo(true)
+                .videoOnly(false)
+                .allowMultiple(true)
                 .build();
         startActivityForResult(intent, REQUEST_PICK_MEDIA);
     }
