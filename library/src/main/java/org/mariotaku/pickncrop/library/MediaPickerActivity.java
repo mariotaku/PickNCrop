@@ -89,7 +89,6 @@ public class MediaPickerActivity extends Activity {
     private static final String SCHEME_HTTP = "http";
     private static final String SCHEME_HTTPS = "https";
     private static final String SCHEME_DATA = "data";
-    private static final String SCHEME_FILE = ContentResolver.SCHEME_FILE;
     private static final String LOGTAG = "PickNCrop";
 
     public static final String EXTRA_ASPECT_X = "aspect_x";
@@ -132,14 +131,16 @@ public class MediaPickerActivity extends Activity {
                     openCamera(false);
                     break;
                 }
-                case INTENT_ACTION_PICK_MEDIA:
-                case INTENT_ACTION_PICK_IMAGE: {
+                //noinspection deprecation
+                case INTENT_ACTION_PICK_IMAGE:
+                case INTENT_ACTION_PICK_MEDIA: {
                     pickMedia();
                     break;
                 }
-                case INTENT_ACTION_GET_MEDIA:
-                case INTENT_ACTION_GET_IMAGE: {
-                    final Uri[] uris = getUrisFromIntent(intent);
+                //noinspection deprecation
+                case INTENT_ACTION_GET_IMAGE:
+                case INTENT_ACTION_GET_MEDIA: {
+                    final Uri[] uris = getMediaUris(intent);
                     mediaSelected(uris, true, false);
                     break;
                 }
@@ -178,7 +179,7 @@ public class MediaPickerActivity extends Activity {
             case REQUEST_GET_CONTENT: {
                 needsCrop = true;
                 deleteSource = false;
-                src = getUrisFromIntent(data);
+                src = getMediaUris(data);
                 break;
             }
             case REQUEST_RECORD_VIDEO: {
@@ -319,8 +320,8 @@ public class MediaPickerActivity extends Activity {
                 file = File.createTempFile("pnc__picked_media_", suffix, extCacheDir);
             } catch (final IOException e) {
                 if (BuildConfig.DEBUG) {
+                    Log.w(LOGTAG, e);
                 }
-                Log.w(LOGTAG, e);
                 return null;
             }
             return Uri.fromFile(file);
@@ -336,26 +337,15 @@ public class MediaPickerActivity extends Activity {
             return FileProvider.getUriForFile(this, getPackageName() + ".pncfileprovider", file);
         } catch (final IOException e) {
             if (BuildConfig.DEBUG) {
+                Log.w(LOGTAG, e);
             }
-            Log.w(LOGTAG, e);
             return null;
         }
     }
 
-    private boolean takePhotoFallback(Uri uri) {
-        final Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
-        try {
-            startActivityForResult(intent, REQUEST_TAKE_PHOTO);
-        } catch (final ActivityNotFoundException e) {
-            return false;
-        }
-        return true;
-    }
-
-    private Uri[] getUrisFromIntent(Intent intent) {
+    public static Uri[] getMediaUris(Intent fromIntent) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            ClipData clipData = intent.getClipData();
+            ClipData clipData = fromIntent.getClipData();
             if (clipData != null && clipData.getItemCount() > 0) {
                 List<Uri> uriList = new ArrayList<>();
                 for (int i = 0, j = clipData.getItemCount(); i < j; i++) {
@@ -367,7 +357,7 @@ public class MediaPickerActivity extends Activity {
                 return uriList.toArray(new Uri[uriList.size()]);
             }
         }
-        return new Uri[]{intent.getData()};
+        return new Uri[]{fromIntent.getData()};
     }
 
     private static class CopyMediaTask extends AsyncTask<Object, Object, Pair<Uri[], Exception>> {
@@ -607,11 +597,11 @@ public class MediaPickerActivity extends Activity {
             private final String value;
             private final int result;
 
-            public Entry(@NonNull String name, @NonNull String value) {
+            Entry(@NonNull String name, @NonNull String value) {
                 this(name, value, -1);
             }
 
-            public Entry(@NonNull String name, @NonNull String value, int result) {
+            Entry(@NonNull String name, @NonNull String value, int result) {
                 this.name = name;
                 this.value = value;
                 this.result = result;
@@ -640,6 +630,7 @@ public class MediaPickerActivity extends Activity {
         }
     }
 
+    @SuppressWarnings("unused,WeakerAccess")
     public static abstract class NetworkStreamDownloader {
 
         private final Context mContext;
@@ -676,6 +667,7 @@ public class MediaPickerActivity extends Activity {
         return new IntentBuilder(context);
     }
 
+    @SuppressWarnings("unused,WeakerAccess")
     public static final class IntentBuilder {
         private final Intent intent;
         private final ArrayList<ExtraEntry> extraEntries;
@@ -698,12 +690,14 @@ public class MediaPickerActivity extends Activity {
             return this;
         }
 
+        @SuppressWarnings("deprecation")
         @Deprecated
         public IntentBuilder pickImage() {
             intent.setAction(INTENT_ACTION_PICK_IMAGE);
             return this;
         }
 
+        @SuppressWarnings("deprecation")
         @Deprecated
         public IntentBuilder getImage(@NonNull Uri uri) {
             intent.setAction(INTENT_ACTION_GET_IMAGE);
