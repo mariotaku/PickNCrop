@@ -706,11 +706,23 @@ public class MediaPickerActivity extends Activity {
         }
 
 
-        public IntentBuilder pickMedia(boolean containsVideo, boolean videoOnly, boolean allowMultiple) {
+        public IntentBuilder pickMedia() {
             intent.setAction(INTENT_ACTION_PICK_MEDIA);
+            return this;
+        }
+
+        public IntentBuilder containsVideo(boolean containsVideo) {
             intent.putExtra(EXTRA_CONTAINS_VIDEO, containsVideo);
-            intent.putExtra(EXTRA_ALLOW_MULTIPLE, allowMultiple);
+            return this;
+        }
+
+        public IntentBuilder videoOnly(boolean videoOnly) {
             intent.putExtra(EXTRA_VIDEO_ONLY, videoOnly);
+            return this;
+        }
+
+        public IntentBuilder allowMultiple(boolean allowMultiple) {
+            intent.putExtra(EXTRA_ALLOW_MULTIPLE, allowMultiple);
             return this;
         }
 
