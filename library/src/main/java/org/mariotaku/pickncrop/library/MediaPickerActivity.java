@@ -684,9 +684,8 @@ public class MediaPickerActivity extends Activity {
             return this;
         }
 
-        public IntentBuilder captureVideo(int videoQuality) {
+        public IntentBuilder captureVideo() {
             intent.setAction(INTENT_ACTION_CAPTURE_VIDEO);
-            intent.putExtra(EXTRA_VIDEO_QUALITY, videoQuality);
             return this;
         }
 
@@ -723,6 +722,11 @@ public class MediaPickerActivity extends Activity {
 
         public IntentBuilder allowMultiple(boolean allowMultiple) {
             intent.putExtra(EXTRA_ALLOW_MULTIPLE, allowMultiple);
+            return this;
+        }
+
+        public IntentBuilder videoQuality(int videoQuality) {
+            intent.putExtra(EXTRA_VIDEO_QUALITY, videoQuality);
             return this;
         }
 

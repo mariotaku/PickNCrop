@@ -169,7 +169,8 @@ public class MainActivity extends Activity {
 
     private void captureVideo() {
         final Intent intent = MediaPickerActivity.with(this)
-                .captureVideo(1)
+                .captureVideo()
+                .videoQuality(0)
                 .build();
         startActivityForResult(intent, REQUEST_PICK_MEDIA);
     }
