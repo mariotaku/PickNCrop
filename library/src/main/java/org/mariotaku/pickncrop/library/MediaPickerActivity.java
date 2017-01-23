@@ -37,6 +37,8 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.annotation.StringDef;
 import android.support.annotation.WorkerThread;
 import android.support.v4.content.FileProvider;
 import android.text.TextUtils;
@@ -99,6 +101,8 @@ public class MediaPickerActivity extends Activity {
     public static final String EXTRA_CONTAINS_VIDEO = "contains_video";
     public static final String EXTRA_VIDEO_ONLY = "video_only";
     public static final String EXTRA_VIDEO_QUALITY = "video_quality";
+    public static final String EXTRA_PICK_SOURCES = "pick_sources";
+
     public static final String SOURCE_CAMERA = "camera";
     public static final String SOURCE_CAMCORDER = "camcorder";
     public static final String SOURCE_CLIPBOARD = "clipboard";
@@ -557,13 +561,22 @@ public class MediaPickerActivity extends Activity {
             final PackageManager pm = activity.getPackageManager();
             final AlertDialog.Builder builder = new AlertDialog.Builder(activity);
             final ArrayList<Entry> entriesList = new ArrayList<>();
+            final String[] pickSources = intent.getStringArrayExtra(EXTRA_PICK_SOURCES);
+            final boolean containsVideo = intent.getBooleanExtra(EXTRA_CONTAINS_VIDEO, false);
+            final boolean videoOnly = intent.getBooleanExtra(EXTRA_VIDEO_QUALITY, false);
             if (pm.hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
-                entriesList.add(new Entry(getString(R.string.pnc__source_camera), SOURCE_CAMERA));
-                entriesList.add(new Entry(getString(R.string.pnc__source_camcorder), SOURCE_CAMCORDER));
+                if (hasSource(pickSources, SOURCE_CAMERA) && containsVideo && videoOnly) {
+                    entriesList.add(new Entry(getString(R.string.pnc__source_camera), SOURCE_CAMERA));
+                }
+                if (hasSource(pickSources, SOURCE_CAMCORDER) && containsVideo) {
+                    entriesList.add(new Entry(getString(R.string.pnc__source_camcorder), SOURCE_CAMCORDER));
+                }
             }
-            entriesList.add(new Entry(getString(R.string.pnc__source_gallery), SOURCE_GALLERY));
+            if (hasSource(pickSources, SOURCE_GALLERY)) {
+                entriesList.add(new Entry(getString(R.string.pnc__source_gallery), SOURCE_GALLERY));
+            }
             mClipboardImageUrl = PNCUtils.getImageUrl(activity);
-            if (!TextUtils.isEmpty(mClipboardImageUrl)) {
+            if (hasSource(pickSources, SOURCE_CLIPBOARD) && !TextUtils.isEmpty(mClipboardImageUrl)) {
                 entriesList.add(new Entry(getString(R.string.pnc__source_clipboard), SOURCE_CLIPBOARD));
             }
             final ArrayList<ExtraEntry> extraEntries = intent.getParcelableArrayListExtra(EXTRA_EXTRA_ENTRIES);
@@ -589,6 +602,14 @@ public class MediaPickerActivity extends Activity {
         @Override
         public void onDismiss(final DialogInterface dialog) {
             super.onDismiss(dialog);
+        }
+
+        private boolean hasSource(@Nullable String[] pickSources, @NonNull String source) {
+            if (pickSources == null) return true;
+            for (String pickSource : pickSources) {
+                if (source.equals(pickSource)) return true;
+            }
+            return false;
         }
 
         private static class Entry implements CharSequence {
@@ -665,6 +686,10 @@ public class MediaPickerActivity extends Activity {
 
     public static IntentBuilder with(Context context) {
         return new IntentBuilder(context, MediaPickerActivity.class);
+    }
+
+    @StringDef({SOURCE_CAMERA, SOURCE_CAMCORDER, SOURCE_GALLERY, SOURCE_CLIPBOARD})
+    public @interface PickSource {
     }
 
     @SuppressWarnings("unused,WeakerAccess")
@@ -750,6 +775,11 @@ public class MediaPickerActivity extends Activity {
 
         public IntentBuilder addEntry(final String name, final String value, final int result) {
             extraEntries.add(new ExtraEntry(name, value, result));
+            return this;
+        }
+
+        public IntentBuilder pickSources(@PickSource String[] pickSources) {
+            intent.putExtra(EXTRA_PICK_SOURCES, pickSources);
             return this;
         }
 
