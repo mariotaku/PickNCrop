@@ -565,7 +565,7 @@ public class MediaPickerActivity extends Activity {
             final boolean containsVideo = intent.getBooleanExtra(EXTRA_CONTAINS_VIDEO, false);
             final boolean videoOnly = intent.getBooleanExtra(EXTRA_VIDEO_QUALITY, false);
             if (pm.hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
-                if (hasSource(pickSources, SOURCE_CAMERA) && containsVideo && videoOnly) {
+                if (hasSource(pickSources, SOURCE_CAMERA) && (!containsVideo || !videoOnly)) {
                     entriesList.add(new Entry(getString(R.string.pnc__source_camera), SOURCE_CAMERA));
                 }
                 if (hasSource(pickSources, SOURCE_CAMCORDER) && containsVideo) {
