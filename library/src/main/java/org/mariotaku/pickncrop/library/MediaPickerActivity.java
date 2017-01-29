@@ -259,11 +259,13 @@ public class MediaPickerActivity extends Activity {
             openDocumentIntent.addCategory(Intent.CATEGORY_OPENABLE);
             openDocumentIntent.setType("*/*");
             final List<String> mimeTypesList = new ArrayList<>();
+            boolean containsImage = true;
             if (containsVideo) {
                 mimeTypesList.add("video/*");
-                if (!videoOnly) {
-                    mimeTypesList.add("image/*");
-                }
+                containsImage = !videoOnly;
+            }
+            if (containsImage) {
+                mimeTypesList.add("image/*");
             }
             openDocumentIntent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypesList.toArray(new String[mimeTypesList.size()]));
             openDocumentIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, allowMultiple);
