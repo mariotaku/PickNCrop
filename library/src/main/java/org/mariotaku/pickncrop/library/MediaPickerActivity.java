@@ -102,6 +102,7 @@ public class MediaPickerActivity extends Activity {
     public static final String EXTRA_VIDEO_ONLY = "video_only";
     public static final String EXTRA_VIDEO_QUALITY = "video_quality";
     public static final String EXTRA_PICK_SOURCES = "pick_sources";
+    public static final String EXTRA_LOCAL_ONLY = "local_only";
 
     public static final String SOURCE_CAMERA = "camera";
     public static final String SOURCE_CAMCORDER = "camcorder";
@@ -255,7 +256,8 @@ public class MediaPickerActivity extends Activity {
             final boolean containsVideo = intent.getBooleanExtra(EXTRA_CONTAINS_VIDEO, false);
             final boolean videoOnly = intent.getBooleanExtra(EXTRA_VIDEO_QUALITY, false);
             final boolean allowMultiple = intent.getBooleanExtra(EXTRA_ALLOW_MULTIPLE, false);
-            final Intent openDocumentIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            final boolean localOnly = intent.getBooleanExtra(EXTRA_LOCAL_ONLY, false);
+            final Intent openDocumentIntent = new Intent(Intent.ACTION_GET_CONTENT);
             openDocumentIntent.addCategory(Intent.CATEGORY_OPENABLE);
             openDocumentIntent.setType("*/*");
             final List<String> mimeTypesList = new ArrayList<>();
@@ -269,6 +271,7 @@ public class MediaPickerActivity extends Activity {
             }
             openDocumentIntent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypesList.toArray(new String[mimeTypesList.size()]));
             openDocumentIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, allowMultiple);
+            openDocumentIntent.putExtra(Intent.EXTRA_LOCAL_ONLY, localOnly);
             startActivityForResult(openDocumentIntent, REQUEST_OPEN_DOCUMENT);
             return;
         }
@@ -749,6 +752,11 @@ public class MediaPickerActivity extends Activity {
 
         public IntentBuilder allowMultiple(boolean allowMultiple) {
             intent.putExtra(EXTRA_ALLOW_MULTIPLE, allowMultiple);
+            return this;
+        }
+
+        public IntentBuilder localOnly(boolean localOnly) {
+            intent.putExtra(EXTRA_LOCAL_ONLY, localOnly);
             return this;
         }
 
