@@ -344,7 +344,7 @@ public class MediaPickerActivity extends Activity {
             pickedMediaDir.mkdirs();
         }
         final File file = new File(pickedMediaDir, "pnc__picked_media_" + suffix);
-        return FileProvider.getUriForFile(this, getPackageName() + ".pncfileprovider", file);
+        return FileProvider.getUriForFile(this, PNCUtils.getFileAuthority(this), file);
     }
 
     public static Uri[] getMediaUris(Intent fromIntent) {

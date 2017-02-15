@@ -25,6 +25,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.Spanned;
 import android.text.style.ImageSpan;
@@ -69,7 +70,10 @@ public class PNCUtils {
     public static boolean deleteMedia(Context context, Uri uri) {
         final String scheme = uri.getScheme();
         if (ContentResolver.SCHEME_CONTENT.equals(scheme)) {
-            ContentResolver cr = context.getContentResolver();
+            final ContentResolver cr = context.getContentResolver();
+            if (getFileAuthority(context).equals(uri.getAuthority())) {
+                return cr.delete(uri, null, null) > 0;
+            }
             String[] projection = {MediaStore.MediaColumns.DATA};
             Cursor cursor = cr.query(uri, projection, null, null, null);
             if (cursor == null) return false;
@@ -94,6 +98,10 @@ public class PNCUtils {
         return false;
     }
 
+    @NonNull
+    public static String getFileAuthority(Context context) {
+        return context.getPackageName() + ".pncfileprovider";
+    }
 
     private static class UtilsAPI16 {
 
