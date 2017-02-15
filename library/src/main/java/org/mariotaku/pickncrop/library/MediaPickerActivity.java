@@ -299,8 +299,10 @@ public class MediaPickerActivity extends Activity {
         } else {
             requestCode = REQUEST_TAKE_PHOTO;
             captureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-            final Uri uri = createTempMediaUri(".jpg");
-            if (uri == null) {
+            final Uri uri;
+            try {
+                uri = createTempMediaUri(".jpg");
+            } catch (IOException e) {
                 Toast.makeText(this, R.string.pnc__error_cannot_open_file, Toast.LENGTH_SHORT).show();
                 finish();
                 return;
@@ -317,39 +319,32 @@ public class MediaPickerActivity extends Activity {
         }
     }
 
-    private Uri createTempMediaUri(String suffix) {
+    @NonNull
+    private Uri createTempMediaUri(String suffix) throws IOException {
         if (suffix == null) {
             suffix = ".tmp";
         }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            if (!getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) return null;
-            final File extCacheDir = getExternalCacheDir();
-            final File file;
-            try {
-                file = File.createTempFile("pnc__picked_media_", suffix, extCacheDir);
-            } catch (final IOException e) {
-                if (BuildConfig.DEBUG) {
-                    Log.w(LOGTAG, e);
-                }
-                return null;
+            if (!getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+                throw new IOException("SD card not mounted");
             }
+            final File extCacheDir = getExternalCacheDir();
+            final File extPickedMediaDir = new File(extCacheDir, "picked-media");
+            if (!extPickedMediaDir.exists()) {
+                //noinspection ResultOfMethodCallIgnored
+                extPickedMediaDir.mkdirs();
+            }
+            final File file = new File(extPickedMediaDir, "pnc__picked_media_" + suffix);
             return Uri.fromFile(file);
         }
         final File cacheDir = getCacheDir();
         final File pickedMediaDir = new File(cacheDir, "picked-media");
-        try {
-            if (!pickedMediaDir.exists()) {
-                //noinspection ResultOfMethodCallIgnored
-                pickedMediaDir.mkdirs();
-            }
-            final File file = File.createTempFile("pnc__picked_media_", suffix, pickedMediaDir);
-            return FileProvider.getUriForFile(this, getPackageName() + ".pncfileprovider", file);
-        } catch (final IOException e) {
-            if (BuildConfig.DEBUG) {
-                Log.w(LOGTAG, e);
-            }
-            return null;
+        if (!pickedMediaDir.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            pickedMediaDir.mkdirs();
         }
+        final File file = new File(pickedMediaDir, "pnc__picked_media_" + suffix);
+        return FileProvider.getUriForFile(this, getPackageName() + ".pncfileprovider", file);
     }
 
     public static Uri[] getMediaUris(Intent fromIntent) {
@@ -377,7 +372,7 @@ public class MediaPickerActivity extends Activity {
         private final boolean mDeleteSource;
 
         CopyMediaTask(final MediaPickerActivity activity, final Uri[] sourceUris,
-                      final boolean needsCrop, final boolean deleteSource) {
+                final boolean needsCrop, final boolean deleteSource) {
             mActivity = activity;
             mSourceUris = sourceUris;
             mNeedsCrop = needsCrop;
@@ -390,45 +385,51 @@ public class MediaPickerActivity extends Activity {
             Uri[] targetUris = new Uri[mSourceUris.length];
             for (int i = 0, j = mSourceUris.length; i < j; i++) {
                 Uri src = mSourceUris[i];
-                InputStream is = null;
-                OutputStream os = null;
                 try {
-                    final String mimeType;
-                    final String scheme = src.getScheme();
-                    if (SCHEME_HTTP.equals(scheme) || SCHEME_HTTPS.equals(scheme)) {
-                        final NetworkStreamDownloader downloader = mActivity.createNetworkStreamDownloader();
-                        final NetworkStreamDownloader.DownloadResult result = downloader.get(src);
-                        is = result.stream;
-                        mimeType = result.mimeType;
-                    } else if (SCHEME_DATA.equals(scheme)) {
-                        final DataUri dataUri = DataUri.parse(src.toString(), Charset.defaultCharset());
-                        is = new ByteArrayInputStream(dataUri.getData());
-                        mimeType = dataUri.getMime();
-                    } else {
-                        is = cr.openInputStream(src);
-                        mimeType = getMediaMimeType(src);
-                    }
-                    final String suffix = mimeType != null ? "."
-                            + MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) : null;
-                    final Uri targetUri = mActivity.createTempMediaUri(suffix);
-                    os = mActivity.getContentResolver().openOutputStream(targetUri);
-                    PNCUtils.copyStream(is, os);
-                    if (mDeleteSource) {
-                        try {
-                            PNCUtils.deleteMedia(mActivity, src);
-                        } catch (SecurityException e) {
-                            Log.w(LOGTAG, "WRITE_EXTERNAL_STORAGE permission is needed for deleting media", e);
-                        }
-                    }
-                    targetUris[i] = targetUri;
-                } catch (final IOException e) {
+                    targetUris[i] = copyMedia(cr, src);
+                } catch (IOException e) {
                     return Pair.<Uri[], Exception>create(null, e);
-                } finally {
-                    PNCUtils.closeSilently(os);
-                    PNCUtils.closeSilently(is);
                 }
             }
             return Pair.create(targetUris, null);
+        }
+
+        private Uri copyMedia(final ContentResolver cr, final Uri src) throws IOException {
+            InputStream is = null;
+            OutputStream os = null;
+            try {
+                final String mimeType;
+                final String scheme = src.getScheme();
+                if (SCHEME_HTTP.equals(scheme) || SCHEME_HTTPS.equals(scheme)) {
+                    final NetworkStreamDownloader downloader = mActivity.createNetworkStreamDownloader();
+                    final NetworkStreamDownloader.DownloadResult result = downloader.get(src);
+                    is = result.stream;
+                    mimeType = result.mimeType;
+                } else if (SCHEME_DATA.equals(scheme)) {
+                    final DataUri dataUri = DataUri.parse(src.toString(), Charset.defaultCharset());
+                    is = new ByteArrayInputStream(dataUri.getData());
+                    mimeType = dataUri.getMime();
+                } else {
+                    is = cr.openInputStream(src);
+                    mimeType = getMediaMimeType(src);
+                }
+                final String suffix = mimeType != null ? "."
+                        + MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) : null;
+                final Uri targetUri = mActivity.createTempMediaUri(suffix);
+                os = mActivity.getContentResolver().openOutputStream(targetUri);
+                PNCUtils.copyStream(is, os);
+                if (mDeleteSource) {
+                    try {
+                        PNCUtils.deleteMedia(mActivity, src);
+                    } catch (SecurityException e) {
+                        Log.w(LOGTAG, "WRITE_EXTERNAL_STORAGE permission is needed for deleting media", e);
+                    }
+                }
+                return targetUri;
+            } finally {
+                PNCUtils.closeSilently(os);
+                PNCUtils.closeSilently(is);
+            }
         }
 
         @Override
@@ -450,7 +451,13 @@ public class MediaPickerActivity extends Activity {
                 final boolean hasCropParameters = callingIntent.hasExtra(EXTRA_ASPECT_X) && callingIntent.hasExtra(EXTRA_ASPECT_Y)
                         || callingIntent.hasExtra(EXTRA_MAX_WIDTH) && callingIntent.hasExtra(EXTRA_MAX_HEIGHT);
                 if (supportsCrop && mNeedsCrop && hasCropParameters) {
-                    final Uri tempImageUri = mActivity.createTempMediaUri(null);
+                    final Uri tempImageUri;
+                    try {
+                        tempImageUri = mActivity.createTempMediaUri(null);
+                    } catch (IOException e) {
+                        Toast.makeText(mActivity, R.string.pnc__error_cannot_open_file, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
                     final Crop crop = Crop.of(dstUris[0], tempImageUri);
                     final int aspectX = callingIntent.getIntExtra(EXTRA_ASPECT_X, -1);
                     final int aspectY = callingIntent.getIntExtra(EXTRA_ASPECT_Y, -1);
@@ -550,7 +557,8 @@ public class MediaPickerActivity extends Activity {
                 addImageActivity.openCamera(true);
             } else if (SOURCE_CLIPBOARD.equals(source)) {
                 if (mClipboardImageUrl != null) {
-                    addImageActivity.mediaSelected(new Uri[]{Uri.parse(mClipboardImageUrl)}, true, false);
+                    addImageActivity.mediaSelected(new Uri[]{Uri.parse(mClipboardImageUrl)}, true,
+                            false);
                 }
             } else {
                 addImageActivity.setResult(entry.result);
