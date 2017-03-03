@@ -370,7 +370,7 @@ public class MediaPickerActivity extends Activity {
         do {
             final String uuid = UUID.randomUUID().toString();
             file = new File(directory, prefix + uuid + suffix);
-        } while (!file.exists());
+        } while (file.exists());
         return file;
     }
 
