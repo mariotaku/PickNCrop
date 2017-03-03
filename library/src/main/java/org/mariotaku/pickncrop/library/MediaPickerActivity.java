@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.UUID;
 
 import repackaged.com.github.ooxi.jdatauri.DataUri;
 
@@ -334,7 +335,7 @@ public class MediaPickerActivity extends Activity {
                 //noinspection ResultOfMethodCallIgnored
                 extPickedMediaDir.mkdirs();
             }
-            final File file = new File(extPickedMediaDir, "pnc__picked_media_" + suffix);
+            final File file = randomFile(extPickedMediaDir, "pnc__picked_media_", suffix);
             return Uri.fromFile(file);
         }
         final File cacheDir = getCacheDir();
@@ -343,7 +344,7 @@ public class MediaPickerActivity extends Activity {
             //noinspection ResultOfMethodCallIgnored
             pickedMediaDir.mkdirs();
         }
-        final File file = new File(pickedMediaDir, "pnc__picked_media_" + suffix);
+        final File file = randomFile(pickedMediaDir, "pnc__picked_media_", suffix);
         return FileProvider.getUriForFile(this, PNCUtils.getFileAuthority(this), file);
     }
 
@@ -362,6 +363,15 @@ public class MediaPickerActivity extends Activity {
             }
         }
         return new Uri[]{fromIntent.getData()};
+    }
+
+    private static File randomFile(File directory, String prefix, String suffix) {
+        File file;
+        do {
+            final String uuid = UUID.randomUUID().toString();
+            file = new File(directory, prefix + uuid + suffix);
+        } while (!file.exists());
+        return file;
     }
 
     private static class CopyMediaTask extends AsyncTask<Object, Object, Pair<Uri[], Exception>> {
