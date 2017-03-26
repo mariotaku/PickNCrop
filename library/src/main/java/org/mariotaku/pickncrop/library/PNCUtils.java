@@ -57,7 +57,8 @@ public class PNCUtils {
         return true;
     }
 
-    public static void copyStream(final InputStream is, final OutputStream os) throws IOException {
+    public static void copyStream(@NonNull final InputStream is, @NonNull final OutputStream os)
+            throws IOException {
         final int bufferSize = 8192;
         final byte[] bytes = new byte[bufferSize];
         int count = is.read(bytes, 0, bufferSize);
@@ -67,7 +68,7 @@ public class PNCUtils {
         }
     }
 
-    public static boolean deleteMedia(Context context, Uri uri) {
+    public static boolean deleteMedia(@NonNull Context context, @NonNull Uri uri) {
         final String scheme = uri.getScheme();
         if (ContentResolver.SCHEME_CONTENT.equals(scheme)) {
             final ContentResolver cr = context.getContentResolver();

@@ -55,6 +55,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -404,7 +406,7 @@ public class MediaPickerActivity extends Activity {
             return Pair.create(targetUris, null);
         }
 
-        private Uri copyMedia(final ContentResolver cr, final Uri src) throws IOException {
+        private Uri copyMedia(@NonNull final ContentResolver cr, @NonNull final Uri src) throws IOException {
             InputStream is = null;
             OutputStream os = null;
             try {
@@ -423,10 +425,12 @@ public class MediaPickerActivity extends Activity {
                     is = cr.openInputStream(src);
                     mimeType = getMediaMimeType(src);
                 }
+                if (is == null) throw new IOException("InputStream is null");
                 final String suffix = mimeType != null ? "."
                         + MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) : null;
                 final Uri targetUri = mActivity.createTempMediaUri(suffix);
                 os = mActivity.getContentResolver().openOutputStream(targetUri);
+                if (os == null) throw new IOException("OutputStream is null");
                 PNCUtils.copyStream(is, os);
                 if (mDeleteSource) {
                     try {
@@ -711,7 +715,9 @@ public class MediaPickerActivity extends Activity {
         return new IntentBuilder(context, MediaPickerActivity.class);
     }
 
+    @SuppressWarnings("WeakerAccess")
     @StringDef({SOURCE_CAMERA, SOURCE_CAMCORDER, SOURCE_GALLERY, SOURCE_CLIPBOARD})
+    @Retention(RetentionPolicy.SOURCE)
     public @interface PickSource {
     }
 
