@@ -105,6 +105,7 @@ public class MediaPickerActivity extends Activity {
     public static final String EXTRA_VIDEO_ONLY = "video_only";
     public static final String EXTRA_VIDEO_QUALITY = "video_quality";
     public static final String EXTRA_PICK_SOURCES = "pick_sources";
+    public static final String EXTRA_EXTRAS = "extra_extras";
     public static final String EXTRA_LOCAL_ONLY = "local_only";
 
     public static final String SOURCE_CAMERA = "camera";
@@ -176,7 +177,9 @@ public class MediaPickerActivity extends Activity {
     @Override
     protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
         if (resultCode != RESULT_OK) {
-            setResult(RESULT_CANCELED);
+            Intent resultData = new Intent();
+            resultData.putExtra(EXTRA_EXTRAS, getIntent().getBundleExtra(EXTRA_EXTRAS));
+            setResult(RESULT_CANCELED, resultData);
             finish();
             return;
         }
@@ -499,6 +502,7 @@ public class MediaPickerActivity extends Activity {
                     }
                     data.setClipData(clipData);
                 }
+                data.putExtra(EXTRA_EXTRAS, mActivity.getIntent().getBundleExtra(EXTRA_EXTRAS));
                 mActivity.setResult(RESULT_OK, data);
             } else if (result.second != null) {
                 Log.w(LOGTAG, result.second);
@@ -575,7 +579,9 @@ public class MediaPickerActivity extends Activity {
                             false);
                 }
             } else {
-                addImageActivity.setResult(entry.result);
+                Intent data = new Intent();
+                data.putExtra(EXTRA_EXTRAS, getActivity().getIntent().getBundleExtra(EXTRA_EXTRAS));
+                addImageActivity.setResult(entry.result, data);
                 addImageActivity.finish();
             }
         }
@@ -814,6 +820,11 @@ public class MediaPickerActivity extends Activity {
 
         public IntentBuilder pickSources(@PickSource String[] pickSources) {
             intent.putExtra(EXTRA_PICK_SOURCES, pickSources);
+            return this;
+        }
+
+        public IntentBuilder extras(Bundle extras) {
+            intent.putExtra(EXTRA_EXTRAS, extras);
             return this;
         }
 
