@@ -175,56 +175,20 @@ public class MediaPickerActivity extends Activity {
     }
 
     @Override
-    protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
-        if (resultCode != RESULT_OK) {
+    protected void onActivityResult(final int requestCode, final int resultCode,
+            @Nullable final Intent data) {
+        final ActivityResult result = handleActivityResult(requestCode, resultCode, data);
+        if (result == null) {
             Intent resultData = new Intent();
             resultData.putExtra(EXTRA_EXTRAS, getIntent().getBundleExtra(EXTRA_EXTRAS));
             setResult(RESULT_CANCELED, resultData);
             finish();
             return;
         }
-        final boolean needsCrop, deleteSource;
-        final Uri[] src;
-        switch (requestCode) {
-            case REQUEST_OPEN_DOCUMENT:
-            case REQUEST_GET_CONTENT: {
-                needsCrop = true;
-                deleteSource = false;
-                src = getMediaUris(data);
-                break;
-            }
-            case REQUEST_RECORD_VIDEO: {
-                needsCrop = false;
-                deleteSource = true;
-                src = new Uri[]{data.getData()};
-                break;
-            }
-            case REQUEST_TAKE_PHOTO: {
-                needsCrop = true;
-                deleteSource = false;
-                if (mTempImageUri == null) {
-                    finish();
-                    return;
-                }
-                src = new Uri[]{mTempImageUri};
-                break;
-            }
-            case REQUEST_CROP: {
-                needsCrop = false;
-                deleteSource = true;
-                src = new Uri[]{Crop.getOutput(data)};
-                break;
-            }
-            default: {
-                finish();
-                return;
-            }
-        }
-        if (src == null) return;
         queueAfterResumed(new Runnable() {
             @Override
             public void run() {
-                mediaSelected(src, needsCrop, deleteSource);
+                mediaSelected(result.src, result.needsCrop, result.deleteSource);
             }
         });
     }
@@ -248,7 +212,6 @@ public class MediaPickerActivity extends Activity {
         }
     }
 
-
     private void mediaSelected(final Uri[] uris, final boolean needsCrop, final boolean deleteSource) {
         final CopyMediaTask task = mTask;
         if (task != null && task.getStatus() == AsyncTask.Status.RUNNING) return;
@@ -263,9 +226,10 @@ public class MediaPickerActivity extends Activity {
             final boolean videoOnly = intent.getBooleanExtra(EXTRA_VIDEO_QUALITY, false);
             final boolean allowMultiple = intent.getBooleanExtra(EXTRA_ALLOW_MULTIPLE, false);
             final boolean localOnly = intent.getBooleanExtra(EXTRA_LOCAL_ONLY, false);
-            final Intent openDocumentIntent = new Intent(Intent.ACTION_GET_CONTENT);
-            openDocumentIntent.addCategory(Intent.CATEGORY_OPENABLE);
-            openDocumentIntent.setType("*/*");
+            final Intent getContentIntent = new Intent(Intent.ACTION_GET_CONTENT);
+            getContentIntent.addCategory(Intent.CATEGORY_OPENABLE);
+            getContentIntent.setType("*/*");
+            getContentIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             final List<String> mimeTypesList = new ArrayList<>();
             boolean containsImage = true;
             if (containsVideo) {
@@ -275,10 +239,11 @@ public class MediaPickerActivity extends Activity {
             if (containsImage) {
                 mimeTypesList.add("image/*");
             }
-            openDocumentIntent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypesList.toArray(new String[mimeTypesList.size()]));
-            openDocumentIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, allowMultiple);
-            openDocumentIntent.putExtra(Intent.EXTRA_LOCAL_ONLY, localOnly);
-            startActivityForResult(openDocumentIntent, REQUEST_OPEN_DOCUMENT);
+            getContentIntent.putExtra(Intent.EXTRA_MIME_TYPES,
+                    mimeTypesList.toArray(new String[mimeTypesList.size()]));
+            getContentIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, allowMultiple);
+            getContentIntent.putExtra(Intent.EXTRA_LOCAL_ONLY, localOnly);
+            startActivityForResult(getContentIntent, REQUEST_OPEN_DOCUMENT);
             return;
         }
         final Intent getContentIntent = new Intent(Intent.ACTION_GET_CONTENT);
@@ -353,6 +318,56 @@ public class MediaPickerActivity extends Activity {
         return FileProvider.getUriForFile(this, PNCUtils.getFileAuthority(this), file);
     }
 
+    @Nullable
+    private ActivityResult handleActivityResult(final int requestCode, final int resultCode,
+            @Nullable final Intent data) {
+        if (resultCode != RESULT_OK) return null;
+
+        final boolean needsCrop, deleteSource;
+        final Uri[] src;
+        switch (requestCode) {
+            case REQUEST_OPEN_DOCUMENT: {
+                if (data == null) return null;
+                needsCrop = true;
+                deleteSource = false;
+                src = getMediaUris(data);
+                break;
+            }
+            case REQUEST_GET_CONTENT: {
+                if (data == null) return null;
+                needsCrop = true;
+                deleteSource = false;
+                src = getMediaUris(data);
+                break;
+            }
+            case REQUEST_RECORD_VIDEO: {
+                if (data == null) return null;
+                needsCrop = false;
+                deleteSource = true;
+                src = new Uri[]{data.getData()};
+                break;
+            }
+            case REQUEST_TAKE_PHOTO: {
+                if (mTempImageUri == null) return null;
+                needsCrop = true;
+                deleteSource = false;
+                src = new Uri[]{mTempImageUri};
+                break;
+            }
+            case REQUEST_CROP: {
+                if (data == null) return null;
+                needsCrop = false;
+                deleteSource = true;
+                src = new Uri[]{Crop.getOutput(data)};
+                break;
+            }
+            default:
+                return null;
+        }
+        if (src == null) return null;
+        return new ActivityResult(needsCrop, deleteSource, src);
+    }
+
     public static Uri[] getMediaUris(Intent fromIntent) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             ClipData clipData = fromIntent.getClipData();
@@ -403,6 +418,8 @@ public class MediaPickerActivity extends Activity {
                 try {
                     targetUris[i] = copyMedia(cr, src);
                 } catch (IOException e) {
+                    return Pair.<Uri[], Exception>create(null, e);
+                } catch (SecurityException e) {
                     return Pair.<Uri[], Exception>create(null, e);
                 }
             }
@@ -841,6 +858,19 @@ public class MediaPickerActivity extends Activity {
         public Intent build() {
             intent.putParcelableArrayListExtra(EXTRA_EXTRA_ENTRIES, extraEntries);
             return intent;
+        }
+    }
+
+    private static class ActivityResult {
+
+        final boolean needsCrop, deleteSource;
+        @NonNull
+        final Uri[] src;
+
+        ActivityResult(final boolean needsCrop, final boolean deleteSource, @NonNull final Uri[] src) {
+            this.needsCrop = needsCrop;
+            this.deleteSource = deleteSource;
+            this.src = src;
         }
     }
 

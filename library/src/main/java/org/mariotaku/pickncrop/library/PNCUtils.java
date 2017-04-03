@@ -104,9 +104,14 @@ public class PNCUtils {
         return context.getPackageName() + ".pncfileprovider";
     }
 
+    public static void takePersistableUriPermission(ContentResolver resolver, Uri uri, int flags) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) return;
+        UtilsAPI19.takePersistableUriPermission(resolver, uri, flags);
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     private static class UtilsAPI16 {
 
-        @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
         public static String getImageUrl(final Context context) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) return null;
             final ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
@@ -123,5 +128,14 @@ public class PNCUtils {
             }
             return null;
         }
+    }
+
+
+    @TargetApi(Build.VERSION_CODES.KITKAT)
+    private static class UtilsAPI19 {
+        public static void takePersistableUriPermission(ContentResolver resolver, Uri uri, int flags) {
+            resolver.takePersistableUriPermission(uri, flags);
+        }
+
     }
 }
