@@ -382,7 +382,9 @@ public class MediaPickerActivity extends Activity {
                 return uriList.toArray(new Uri[uriList.size()]);
             }
         }
-        return new Uri[]{fromIntent.getData()};
+        final Uri data = fromIntent.getData();
+        if (data == null) return null;
+        return new Uri[]{data};
     }
 
     private static File randomFile(File directory, String prefix, String suffix) {
