@@ -36,7 +36,9 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-
+        <activity
+            android:name="com.theartofdev.edmodo.cropper.CropImageActivity"
+            android:theme="@style/Theme.AppCompat" />
         <!-- Use your package name + ".pncfileprovider" as authorities -->
         <provider
             android:name="android.support.v4.content.FileProvider"

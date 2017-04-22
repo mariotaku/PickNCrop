@@ -79,6 +79,12 @@ public class MainActivity extends Activity {
                 captureVideo();
             }
         });
+        findViewById(R.id.pick_and_crop).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                pickAndCrop();
+            }
+        });
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
                     REQUEST_REQUEST_PERMISSION);
@@ -181,6 +187,17 @@ public class MainActivity extends Activity {
                 .containsVideo(true)
                 .videoOnly(false)
                 .allowMultiple(true)
+                .build();
+        startActivityForResult(intent, REQUEST_PICK_MEDIA);
+    }
+
+    private void pickAndCrop() {
+        final Intent intent = MediaPickerActivity.with(this)
+                .pickMedia()
+                .containsVideo(false)
+                .allowMultiple(false)
+                .aspectRatio(1, 1)
+                .maximumSize(512, 512)
                 .build();
         startActivityForResult(intent, REQUEST_PICK_MEDIA);
     }
