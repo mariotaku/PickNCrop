@@ -50,6 +50,7 @@ import android.widget.Toast;
 
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageActivity;
+import com.theartofdev.edmodo.cropper.CropImageView.RequestSizeOptions;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -816,6 +817,8 @@ public class MediaPickerActivity extends Activity {
                         return;
                     }
                     CropImage.ActivityBuilder crop = CropImage.activity(copyResults[0].uri);
+                    crop.setAutoZoomEnabled(true);
+                    crop.setMultiTouchEnabled(true);
                     crop.setOutputUri(tempImageUri);
                     final int aspectX = callingIntent.getIntExtra(EXTRA_ASPECT_X, -1);
                     final int aspectY = callingIntent.getIntExtra(EXTRA_ASPECT_Y, -1);
@@ -825,7 +828,7 @@ public class MediaPickerActivity extends Activity {
                     final int maxWidth = callingIntent.getIntExtra(EXTRA_MAX_WIDTH, -1);
                     final int maxHeight = callingIntent.getIntExtra(EXTRA_MAX_HEIGHT, -1);
                     if (maxWidth > 0 && maxHeight > 0) {
-                        crop.setMaxCropResultSize(maxWidth, maxHeight);
+                        crop.setRequestedSize(maxWidth, maxHeight, RequestSizeOptions.RESIZE_FIT);
                     }
                     final String outputFormat = callingIntent.getStringExtra(EXTRA_OUTPUT_FORMAT);
                     if (outputFormat != null) {
