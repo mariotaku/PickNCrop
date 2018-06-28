@@ -59,6 +59,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.ref.WeakReference;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -85,8 +86,10 @@ public class MediaPickerActivity extends Activity {
     private static final String INTENT_PACKAGE_PREFIX = BuildConfig.APPLICATION_ID + ".";
     public static final String INTENT_ACTION_TAKE_PHOTO = INTENT_PACKAGE_PREFIX + "TAKE_PHOTO";
     public static final String INTENT_ACTION_CAPTURE_VIDEO = INTENT_PACKAGE_PREFIX + "CAPTURE_VIDEO";
+    @SuppressWarnings("DeprecatedIsStillUsed")
     @Deprecated
     public static final String INTENT_ACTION_PICK_IMAGE = INTENT_PACKAGE_PREFIX + "PICK_IMAGE";
+    @SuppressWarnings("DeprecatedIsStillUsed")
     @Deprecated
     public static final String INTENT_ACTION_GET_IMAGE = INTENT_PACKAGE_PREFIX + "GET_IMAGE";
 
@@ -180,7 +183,7 @@ public class MediaPickerActivity extends Activity {
 
     @Override
     protected void onActivityResult(final int requestCode, final int resultCode,
-            @Nullable final Intent data) {
+                                    @Nullable final Intent data) {
         final ActivityResult result = handleActivityResult(requestCode, resultCode, data);
         if (result == null) {
             Intent resultData = new Intent();
@@ -414,6 +417,7 @@ public class MediaPickerActivity extends Activity {
         return new Uri[]{data};
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static File randomFile(File directory, String prefix, String suffix) {
         File file;
         do {
@@ -595,7 +599,7 @@ public class MediaPickerActivity extends Activity {
     public @interface PickSource {
     }
 
-    @SuppressWarnings("unused,WeakerAccess")
+    @SuppressWarnings("unused,WeakerAccess,UnusedReturnValue")
     public static final class IntentBuilder {
         private final Intent intent;
         private final ArrayList<ExtraEntry> extraEntries;
@@ -724,14 +728,14 @@ public class MediaPickerActivity extends Activity {
 
     private static class CopyMediaTask extends AsyncTask<Object, Object, Pair<CopyResult[], Exception>> {
         private static final String TAG_COPYING_IMAGE = "copying_media";
-        private final MediaPickerActivity mActivity;
+        private final WeakReference<MediaPickerActivity> mActivityRef;
         private final Uri[] mSourceUris;
         private final boolean mNeedsCrop;
         private final boolean mDeleteSource;
 
         CopyMediaTask(final MediaPickerActivity activity, final Uri[] sourceUris,
                       final boolean needsCrop, final boolean deleteSource) {
-            mActivity = activity;
+            mActivityRef = new WeakReference<>(activity);
             mSourceUris = sourceUris;
             mNeedsCrop = needsCrop;
             mDeleteSource = deleteSource;
@@ -739,7 +743,11 @@ public class MediaPickerActivity extends Activity {
 
         @Override
         protected Pair<CopyResult[], Exception> doInBackground(final Object... params) {
-            final ContentResolver cr = mActivity.getContentResolver();
+            final Context context = mActivityRef.get();
+            if (context == null) {
+                return Pair.<CopyResult[], Exception>create(null, new InterruptedException());
+            }
+            final ContentResolver cr = context.getContentResolver();
             CopyResult[] copyResults = new CopyResult[mSourceUris.length];
             for (int i = 0, j = mSourceUris.length; i < j; i++) {
                 Uri src = mSourceUris[i];
@@ -749,19 +757,26 @@ public class MediaPickerActivity extends Activity {
                     return Pair.<CopyResult[], Exception>create(null, e);
                 } catch (SecurityException e) {
                     return Pair.<CopyResult[], Exception>create(null, e);
+                } catch (InterruptedException e) {
+                    return Pair.<CopyResult[], Exception>create(null, e);
                 }
             }
             return Pair.create(copyResults, null);
         }
 
-        private CopyResult copyMedia(@NonNull final ContentResolver cr, @NonNull final Uri src) throws IOException {
+        private CopyResult copyMedia(@NonNull final ContentResolver cr, @NonNull final Uri src)
+                throws IOException, InterruptedException {
+            final MediaPickerActivity activity = mActivityRef.get();
+            if (activity == null) {
+                throw new InterruptedException();
+            }
             InputStream is = null;
             OutputStream os = null;
             try {
                 final String mimeType;
                 final String scheme = src.getScheme();
                 if (SCHEME_HTTP.equals(scheme) || SCHEME_HTTPS.equals(scheme)) {
-                    final NetworkStreamDownloader downloader = mActivity.createNetworkStreamDownloader();
+                    final NetworkStreamDownloader downloader = activity.createNetworkStreamDownloader();
                     final NetworkStreamDownloader.DownloadResult result = downloader.get(src);
                     is = result.stream;
                     mimeType = result.mimeType;
@@ -775,13 +790,13 @@ public class MediaPickerActivity extends Activity {
                 }
                 if (is == null) throw new IOException("InputStream is null");
                 final String extension = mimeType != null ? MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) : null;
-                final Uri targetUri = mActivity.createTempMediaUri(extension);
-                os = mActivity.getContentResolver().openOutputStream(targetUri);
+                final Uri targetUri = activity.createTempMediaUri(extension);
+                os = activity.getContentResolver().openOutputStream(targetUri);
                 if (os == null) throw new IOException("OutputStream is null");
                 PNCUtils.copyStream(is, os);
                 if (mDeleteSource) {
                     try {
-                        PNCUtils.deleteMedia(mActivity, src);
+                        PNCUtils.deleteMedia(activity, src);
                     } catch (SecurityException e) {
                         Log.w(LOGTAG, "WRITE_EXTERNAL_STORAGE permission is needed for deleting media", e);
                     }
@@ -795,12 +810,20 @@ public class MediaPickerActivity extends Activity {
 
         @Override
         protected void onPreExecute() {
+            final MediaPickerActivity mActivity = mActivityRef.get();
+            if (mActivity == null) {
+                return;
+            }
             final ProgressDialogFragment f = ProgressDialogFragment.show(mActivity, TAG_COPYING_IMAGE);
             f.setCancelable(false);
         }
 
         @Override
         protected void onPostExecute(final Pair<CopyResult[], Exception> result) {
+            final MediaPickerActivity mActivity = mActivityRef.get();
+            if (mActivity == null) {
+                return;
+            }
             mActivity.dismissProgressDialog(TAG_COPYING_IMAGE);
             if (result.first != null) {
                 CopyResult[] copyResults = result.first;
@@ -838,9 +861,13 @@ public class MediaPickerActivity extends Activity {
                     if (outputQuality >= 0) {
                         crop.setOutputCompressQuality(outputQuality);
                     }
-                    final Intent cropIntent = crop.getIntent(mActivity);
-                    cropIntent.setClassName(mActivity, callingIntent.getStringExtra(EXTRA_CROP_ACTIVITY_CLASS));
-                    mActivity.startActivityForResult(cropIntent, REQUEST_CROP);
+                    Class<?> activityClass;
+                    try {
+                        activityClass = Class.forName(callingIntent.getStringExtra(EXTRA_CROP_ACTIVITY_CLASS));
+                    } catch (ClassNotFoundException e) {
+                        activityClass = null;
+                    }
+                    mActivity.startActivityForResult(crop.getIntent(mActivity, activityClass), REQUEST_CROP);
                     return;
                 }
                 final Intent data = new Intent();
@@ -863,7 +890,11 @@ public class MediaPickerActivity extends Activity {
             mActivity.finish();
         }
 
-        private String getMediaMimeType(Uri src) {
+        private String getMediaMimeType(Uri src) throws InterruptedException {
+            final MediaPickerActivity mActivity = mActivityRef.get();
+            if (mActivity == null) {
+                throw new InterruptedException();
+            }
             InputStream is = null;
             try {
                 final ContentResolver cr = mActivity.getContentResolver();

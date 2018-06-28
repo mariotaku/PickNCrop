@@ -25,7 +25,7 @@ android {
         minSdkVersion 14
         targetSdkVersion 27
         versionCode 27
-        versionName '0.9.28'
+        versionName '0.9.29'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_7
